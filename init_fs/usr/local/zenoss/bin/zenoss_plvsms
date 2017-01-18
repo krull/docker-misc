@@ -1,0 +1,72 @@
+#! /usr/bin/env python
+
+import os
+import sys
+import json
+import time
+import base64
+import urllib2
+
+# Change variables
+LOG_ENABLED = 0
+MSG_SRC = "SYSMNT"
+AUTH_ID = "XXXXXXXXXXXXXXXXXXXX"
+AUTH_TOKEN = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+
+def main():
+
+    try:
+        # Read receipent number
+        MSG_RCPT = sys.argv[1]
+    except:
+        print "Invalid arguments! Usage: zenoss_plvsms <recipient>"
+        sys.exit(1)
+
+    try:
+        # Open logfile if logging enabled
+        if LOG_ENABLED:
+            file = os.environ['ZENHOME']+"/log/zenoss_sms.log"
+            log = open(file, 'a')
+    except:
+        print "Cannot open log file!"
+        sys.exit(2)
+
+    try:
+        # Read message from standard in
+        MSG = sys.stdin.read()
+
+        # Prepare HTTP JSON request
+        base_url = "https://api.plivo.com/v1/Account/"+AUTH_ID+"/Message/"
+        data = json.dumps({ 'src': MSG_SRC, 'dst': MSG_RCPT, 'text': MSG })
+
+        # Basic Auth
+        basic_auth = base64.b64encode('%s:%s' % (AUTH_ID, AUTH_TOKEN))
+
+        # Headers
+        request = urllib2.Request(base_url)
+        request.add_header('Content-Type', 'application/json')
+        request.add_header("Authorization", "Basic %s" % basic_auth)
+
+        # Write log if logging enabled
+        if LOG_ENABLED:
+            timestamp = "["+time.strftime("%Y-%m-%d %H:%M:%S")+"]"
+            log.write("%s ===== BEGIN SENDING SMS ==== \n" % timestamp)
+            log.write("%s SMS recipient: %s\n" % (timestamp, MSG_RCPT))
+            log.write("%s SMS text: %s\n" % (timestamp, MSG))
+
+        #HTTP request to Plivo
+        result = urllib2.urlopen(request, data).read()
+
+        # Write log if logging enabled
+        if LOG_ENABLED:
+            timestamp = "["+time.strftime("%Y-%m-%d %H:%M:%S")+"]"
+            try:
+                log.write("%s Sending result: %s\n" % (timestamp, result))
+                log.write("%s ===== END SENDING SMS ====\n" % timestamp)
+            finally:
+                log.close()
+    except Exception, e:
+        print e
+        sys.exit(1)
+
+main()
