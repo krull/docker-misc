@@ -1,0 +1,11 @@
+--- janus_sip.c	2017-02-24 11:54:09.668182912 +0200
++++ janus_sip_patched.c	2017-02-24 12:03:12.612345928 +0200
+@@ -3379,7 +3379,7 @@
+ 			break;
+ 		int i = 0;
+ 		for(i=0; i<num; i++) {
+-			if(fds[i].revents & (POLLERR | POLLHUP)) {
++			if(fds[i].revents & (POLLHUP)) {
+ 				/* Socket error? */
+ 				JANUS_LOG(LOG_ERR, "[SIP-%s] Error polling: %s...\n", session->account.username,
+ 					fds[i].revents & POLLERR ? "POLLERR" : "POLLHUP");
